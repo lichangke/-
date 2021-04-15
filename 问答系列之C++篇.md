@@ -14,7 +14,7 @@ Clion 2019.3
 
 主要参考以上系列文章，感谢其博主的无私分享，在此基础上加上了自己的理解和其他网上相关讲解，并尽可能地给出代码示例与结果。
 
-
+代码GitBub： [代码GitHub](https://github.com/lichangke/QuestionAndAnswer/tree/master/C%2B%2B%E9%97%AE%E7%AD%94Code)
 
 ### 1、在main执行之前和之后执行的代码可能是什么？
 
@@ -302,6 +302,8 @@ int main() {
 
 
 ### 5、讲讲虚函数表？
+
+<span id="讲讲虚函数表"></span>
 
 每个包含了虚函数的类都包含一个虚表。当一个类（A）继承另一个类（B）时，类 A 会继承类 B 的函数的调用权。所以如果一个基类包含了虚函数，那么其继承类也可调用这些虚函数，换句话说，一个类继承了包含虚函数的基类，那么这个类也拥有自己的虚表。
 
@@ -1140,7 +1142,405 @@ Process finished with exit code 0
 
 
 
-https://github.com/forthespada/InterviewGuide/blob/main/%E7%9F%A5%E8%AF%86%E5%82%A8%E5%A4%87/C&C++.md#34%E6%9E%84%E9%80%A0%E5%87%BD%E6%95%B0%E8%83%BD%E5%90%A6%E5%A3%B0%E6%98%8E%E4%B8%BA%E8%99%9A%E5%87%BD%E6%95%B0%E6%88%96%E8%80%85%E7%BA%AF%E8%99%9A%E5%87%BD%E6%95%B0%E6%9E%90%E6%9E%84%E5%87%BD%E6%95%B0%E5%91%A2
+### 21、构造函数能否声明为虚函数或者纯虚函数，析构函数呢？
+
+
+
+析构函数：
+
+- 析构函数可以为虚函数，并且一般情况下基类析构函数要定义为虚函数。
+- 只有在基类析构函数定义为虚函数时，调用操作符delete销毁指向对象的基类指针时，才能准确调用派生类的析构函数（从该级向上按序调用虚函数），才能准确销毁数据。
+- **析构函数可以是纯虚函数**，含有纯虚函数的类是抽象类，此时不能被实例化。但派生类中可以根据自身需求重新改写基类中的纯虚函数。
+
+构造函数：
+
+- 构造函数不能定义为虚函数。在构造函数中可以调用虚函数，不过此时调用的是正在构造的类中的虚函数，而不是子类的虚函数，因为此时子类尚未构造好。
+- 虚函数对应一个vtable(虚函数表)，类中存储一个vptr指向这个vtable。如果构造函数是虚函数，就需要通过vtable调用，可是对象没有初始化就没有vptr，无法找到vtable，所以构造函数不能是虚函数。
+
+
+
+### 22、C++中的重载、重写（覆盖）和隐藏的区别
+
+#### 重载（overload）
+
+重载的定义为：**在同一作用域中，同名函数的形式参数（参数个数、类型或者顺序）不同时，构成函数重载**。例如：
+
+```cpp
+class A
+{
+public:
+	int 	func(int a);
+	void 	func(int a, int b);
+	void 	func(int a, int b, int c);    	
+	int 	func(char* pstr, int a);
+};
+```
+
+以上的四个函数均构成重载。
+
+需要注意的是：
+
+1. **函数返回值类型与构成重载无任何关系**
+2. **类的静态成员函数与普通成员函数可以形成重载**
+3. **函数重载发生在同一作用域，如类成员函数之间的重载、全局函数之间的重载**
+
+对于重载，最出名的应该就是**运算符重载**。
+
+#### 重写（覆盖）（override）
+
+重写指的是在派生类中覆盖基类中的同名函数，**重写就是重写函数体**，**要求基类函数必须是虚函数**且：
+
+- 与基类的虚函数有相同的参数个数
+- 与基类的虚函数有相同的参数类型
+- 与基类的虚函数有相同的返回值类型
+
+```cpp
+//父类
+class A{
+public:
+    virtual int fun(int a){}
+}
+//子类
+class B : public A{
+public:
+    //重写,一般加override可以确保是重写父类的函数
+    virtual int fun(int a) override{}
+}
+```
+
+重载与重写的区别：
+
+- 重写是父类和子类之间的垂直关系，重载是不同函数之间的水平关系
+- 重写要求参数列表相同，重载则要求参数列表不同，返回值不要求
+- 重写关系中，调用方法根据对象类型决定，重载根据调用时实参表与形参表的对应关系来选择函数体
+
+
+
+#### 隐藏（hide）
+
+
+
+隐藏定义：**指不同作用域中定义的同名函数构成隐藏（不要求函数返回值和函数参数类型相同）**。比如派生类成员函数隐藏与其同名的基类成员函数、类成员函数隐藏全局外部函数。
+
+```cpp
+void hidefunc(char* pstr)
+{
+	cout << "global function: " << pstr << endl;
+}
+
+class HideA
+{
+public:
+	void hidefunc()
+	{
+		cout << "HideA function" << endl;
+	}
+
+	void usehidefunc()
+	{
+		//隐藏外部函数hidefunc，使用外部函数时要加作用域
+		hidefunc();
+		::hidefunc("lvlv");
+	}
+};
+
+class HideB : public HideA
+{
+public:
+	void hidefunc()
+	{
+		cout << "HideB function" << endl;
+	}
+
+	void usehidefunc()
+	{
+		//隐藏基类函数hidefunc，使用外部函数时要加作用域
+		hidefunc();
+		HideA::hidefunc();
+	}
+};
+```
+
+
+
+两个函数参数相同，但是基类函数不是虚函数。**和重写的区别在于基类函数是否是虚函数。**
+
+**两个函数参数不同，无论基类函数是不是虚函数，都会被隐藏。和重载的区别在于两个函数不在同一个类中。**
+
+> [C++ 重载、重写（覆盖）、隐藏的定义与区别](https://blog.csdn.net/weixin_39640298/article/details/88725073)
+
+### 23、C++实现多态的原理
+
+多态就是多种形态，C++的多态分为静态多态与动态多态。
+
+**静态多态** 就是重载，因为在编译期决议确定，所以称为静态多态。在编译时就可以确定函数地址。在编译时编译器会根据参数列表的不同寻找合适的函数。
+
+```cpp
+#include <iostream>
+int Add(int left, int right)
+{
+    std::cout << "Add(int left, int right)" << std::endl;
+    return left + right;
+}
+double Add(double left, int right)
+{
+    std::cout << "Add(double left, int right)" << std::endl;
+    return left + right;
+}
+
+int main() {
+
+    Add(1, 2);
+    Add(1.0,2);
+    return 0;
+}
+```
+
+```
+/home/leacock/CLionProjects/C++问答/Q023/cmake-build-debug/Q023
+Add(int left, int right)
+Add(double left, int right)
+
+Process finished with exit code 0
+```
+
+**动态多态** 就是通过继承重写基类的虚函数实现的多态，因为实在运行时决议确定，所以称为动态多态。运行时在虚函数表中寻找调用函数的地址。重写虚函数时一定要保证函数的返回值，参数列表，函数名称完全一致。
+
+虚函数分为纯虚方法和半虚方法，纯函数父类没有实现版本，完全交给子类，且必须实现。半虚函数父类可以实现，子类需要重写，他们都由关键字virtual修饰。
+
+```cpp
+class Animal
+{
+public :
+    virtual void sayHi() {
+        std::cout << "Animal sya hi" << std::endl;
+    }
+};
+
+class Cat : public Animal {
+public :
+    void sayHi() override {
+        std::cout << "Cat sya hi" << std::endl;
+    }
+};
+class Dog : public Animal {
+public :
+    void sayHi() override {
+        std::cout << "Dog sya hi" << std::endl;
+    }
+};
+
+void animalSayHi(Animal &animal) {
+    animal.sayHi();
+}
+
+int main() {
+
+    Animal a;
+    Cat cat;
+    Dog dog;
+    animalSayHi(a);
+    animalSayHi(cat);
+    animalSayHi(dog);
+    return 0;
+}
+```
+
+```
+/home/leacock/CLionProjects/C++问答/Q023/cmake-build-debug/Q023
+Animal sya hi
+Cat sya hi
+Dog sya hi
+
+Process finished with exit code 0
+```
+
+**以下函数不能作为虚函数**
+1）友元函数，它不是类的成员函数
+2）全局函数
+3）静态成员函数，它没有this指针
+3）构造函数，拷贝构造函数，以及赋值运算符重载（可以但是一般不建议作为虚函数）
+
+参见 [讲讲虚函数表](#讲讲虚函数表)
+
+
+
+> [C++ 多态的实现和原理](https://www.jianshu.com/p/94a653059139)
+
+
+
+### 24、浅谈C++中的几种构造函数
+
+C++中的构造函数可以分为4类：
+（1）默认构造函数。以Student类为例，默认构造函数的原型为
+Student(）；//没有参数
+（2）初始化构造函数
+Student(int num，int age）；//有参数
+（3）复制（拷贝）构造函数
+Student(Student&）；//形参是本类对象的引用
+（4）转换构造函数
+Student(int r) ；//形参时其他类型变量，且只有一个形参
+
+```cpp
+#include <iostream>
+
+class Student{
+public:
+    Student(){//默认构造函数，没有参数
+        std::cout << "---默认构造函数---" << std::endl;
+        this->age = 20;
+        this->num = 1000;
+        std::cout << "age = " << this->age << " num = " << this->num << std::endl;
+    };
+    Student(int a, int n):age(a), num(n){ //初始化构造函数，有参数和参数列表
+        std::cout << "---初始化构造函数---" << std::endl;
+        std::cout << "age = " << this->age << " num = " << this->num << std::endl;
+    };
+    Student(const Student& s){//拷贝构造函数，这里与编译器生成的一致
+        std::cout << "---拷贝构造函数---" << std::endl;
+        this->age = s.age;
+        this->num = s.num;
+        std::cout << "age = " << this->age << " num = " << this->num << std::endl;
+    };
+    explicit Student(int r){   //转换构造函数,将int类型的r转换为Student类型的对象，对象的age为r，num为1004
+        std::cout << "---转换构造函数---" << std::endl;
+        this->age = r;
+        this->num = 1004;
+        std::cout << "age = " << this->age << " num = " << this->num << std::endl;
+    };
+    ~Student()= default;
+public:
+    int age;
+    int num;
+};
+
+int main() {
+    std::cout << "Hello, World!" << std::endl;
+    //用默认构造函数初始化对象S1
+    Student s1;
+    //用初始化构造函数初始化对象S2
+    Student s2(1002,18);
+    Student  s3(s2);//将对象s2复制给s3。注意复制和赋值的概念不同
+    Student s4;
+    s4=s2;//这种情况叫做赋值
+    std::cout << "s4 age = " << s4.age << " s4 num = " << s4.num << std::endl;
+    int a = 10;
+    Student s5(a);
+    return 0;
+}
+```
+
+```
+/home/leacock/CLionProjects/C++问答/Q024/cmake-build-debug/Q024
+Hello, World!
+---默认构造函数---
+age = 20 num = 1000
+---初始化构造函数---
+age = 1002 num = 18
+---拷贝构造函数---
+age = 1002 num = 18
+---默认构造函数---
+age = 20 num = 1000
+s4 age = 1002 s4 num = 18
+---转换构造函数---
+age = 10 num = 1004
+
+Process finished with exit code 0
+```
+
+
+
+> [浅谈C++中的几种构造函数](https://blog.csdn.net/zxc024000/article/details/51153743)
+
+
+
+### 25、浅拷贝和深拷贝的区别
+
+这个问题不单单只是C++中有，其他语言同样存在，
+
+**浅拷贝**
+
+浅拷贝只是拷贝一个指针，并没有新开辟一个地址，拷贝的指针和原来的指针指向同一块地址，如果原来的指针所指向的资源释放了，那么再释放浅拷贝的指针的资源就会出现错误。
+
+**深拷贝**
+
+深拷贝不仅拷贝值，还开辟出一块新的空间用来存放新的值，即使原先的对象被析构掉，释放内存了也不会影响到深拷贝得到的值。在自己实现拷贝赋值的时候，如果有指针变量的话是需要自己实现深拷贝的。
+
+
+
+```cpp
+#include <iostream>
+#include <cstring>
+
+class Student
+{
+private:
+    char *name;
+public:
+    Student(){
+        name = new char(20);
+        std::cout << "Student" << std::endl;
+    };
+    ~Student(){
+        std::cout << "~Student " << &name << std::endl;
+        delete name;
+        name = nullptr;
+    };
+    Student(const Student &s){//拷贝构造函数
+        //浅拷贝，当对象的name和传入对象的name指向相同的地址
+        std::cout << "浅拷贝 Student" << std::endl;
+        name = s.name;
+        //深拷贝
+        // std::cout << "深拷贝 Student" << std::endl;
+        //name = new char(20);
+        //memcpy(name, s.name, strlen(s.name));
+
+    };
+};
+
+int main()
+{
+    Student s1;
+    Student s2(s1);// 复制对象
+
+    return 0;
+}
+```
+
+```
+浅拷贝 测试
+free(): double free detected in tcache 2
+Student
+浅拷贝 Student
+~Student 0x7ffc6bebbbf0
+~Student 0x7ffc6bebbbe8
+
+Process finished with exit code 134 (interrupted by signal 6: SIGABRT)
+```
+
+```
+深拷贝 测试
+Student
+深拷贝 Student
+~Student 0x7ffda8227190
+~Student 0x7ffda8227188
+
+Process finished with exit code 0
+```
+
+从执行结果可以看出，浅拷贝在对象的拷贝创建时存在风险，即被拷贝的对象析构释放资源之后，拷贝对象析构时会再次释放一个已经释放的资源，深拷贝的结果是两个对象之间没有任何关系，各自成员地址不同。
+
+
+
+> [C++面试题之浅拷贝和深拷贝的区别](https://blog.csdn.net/caoshangpa/article/details/79226270Python)
+>
+>[ [核心技术与实战学习] 07 Python对象的比较、 拷贝](https://blog.csdn.net/leacock1991/article/details/101490303)
+
+
+
+
+
+https://github.com/forthespada/InterviewGuide/blob/main/%E7%9F%A5%E8%AF%86%E5%82%A8%E5%A4%87/C&C++.md#39%E5%86%85%E8%81%94%E5%87%BD%E6%95%B0%E5%92%8C%E5%AE%8F%E5%AE%9A%E4%B9%89%E7%9A%84%E5%8C%BA%E5%88%AB
 
 
 
