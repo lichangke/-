@@ -1538,6 +1538,211 @@ Process finished with exit code 0
 
 
 
+### 26、内联函数和宏定义的区别
+
+内联(inline)函数和普通函数相比可以加快程序运行的速度，因为不需要中断调用，在编译的时候内联函数可以直接嵌入到目标代码中。
+
+**内联函数适用场景**
+
+- 使用宏定义的地方都可以使用inline函数
+- 作为类成员接口函数来读写类的私有成员或者保护成员，会提高效率
+
+**为什么不能把所有的函数写成内联函数**
+
+内联函数以代码复杂为代价，它以省去函数调用的开销来提高执行效率。所以一方面如果内联函数体内代码执行时间相比函数调用开销较大，则没有太大的意义；另一方面每一处内联函数的调用都要复制代码，消耗更多的内存空间，因此以下情况不宜使用内联函数：
+
+- 函数体内的代码比较长，将导致内存消耗代价
+- 函数体内有循环，函数执行时间要比函数调用开销大
+
+**主要区别**
+
+- 内联函数在编译时展开，宏在预编译时展开
+- 内联函数直接嵌入到目标代码中，宏是简单的做文本替换
+- 内联函数有类型检测、语法判断等功能，而宏没有
+- 内联函数是函数，宏不是
+- 宏定义时要注意书写（参数要括起来）否则容易出现歧义，内联函数不会产生歧义
+- 内联函数代码是被放到符号表中，使用时像宏一样展开，没有调用的开销，效率很高；
+
+> 《inline函数和宏定义区别 整理》：[https://blog.csdn.net/wangliang888888/article/details/77990650](https://blog.csdn.net/wangliang888888/article/details/77990650
+
+- 在使用时，宏只做简单字符串替换（编译前）。而内联函数可以进行参数类型检查（编译时），且具有返回值。
+- 内联函数本身是函数，强调函数特性，具有重载等功能。
+- 内联函数可以作为某个类的成员函数，这样可以使用类的保护成员和私有成员，进而提升效率。而当一个表达式涉及到类保护成员或私有成员时，宏就不能实现了。
+
+
+
+### 27、宏定义中的#和##的宏展开问题
+
+
+
+**关于符号#和##**
+
+两个符号都只能用于预处理宏扩展。不能在普通的源码中使用它们，只能在宏定义中使用。
+
+简单的说，#是把宏参数变为一个字符串，##是把两个宏参数连接在一起。
+
+**关于宏展开**
+
+预处理过程的几个步骤：
+
+1）字符集转换（如三联字符）
+
+2）断行链接/
+
+3）注释处理，/* comment */，被替换成空格
+
+4）执行预处理命令，如#inlcude、#define、#pragma、#error等
+
+5）转义字符替换
+
+6）相邻字符串拼接
+
+7）将预处理记号替换为词法记号
+
+第4）步即如何展开宏函数的规则：**在展开当前宏函数时，如果形参有#或##则不进行宏参数的展开，否则先展开宏参数，再展开当前宏。**
+
+宏替换顺序英文描述如下：
+
+A parameter in the replacement list, unless preceded by a # or ## preprocessing token or followed by a ## preprocessing token, is replaced by the corresponding argument after all macros contained therein have been expanded.
+
+```cpp
+#include <iostream>
+
+#define _GET_STRING_(string)  #string
+#define GET_STRING(string)  _GET_STRING_(string)
+
+#define _EXPANSION_(type) type##Expansion
+#define EXPANSION(type) _EXPANSION_(type)
+
+
+int main() {
+    std::cout << "Hello, World!" << std::endl;
+
+    std::cout << "_GET_STRING_(main) = " << _GET_STRING_(main) << std::endl;
+    std::cout << "_GET_STRING_(_EXPANSION_(main)) = " << _GET_STRING_(_EXPANSION_(main)) << std::endl;
+    std::cout << "_GET_STRING_(EXPANSION(main)) = " << _GET_STRING_(EXPANSION(main)) << std::endl;
+    std::cout << "GET_STRING(_EXPANSION_(main)) = " << GET_STRING(_EXPANSION_(main)) << std::endl;
+    std::cout << "GET_STRING(EXPANSION(main)) = " << GET_STRING(EXPANSION(main)) << std::endl;
+    return 0;
+}
+
+```
+
+![image-20210426161046416](Pictures/问答系列之C++篇/027_问答系列之C++篇.png)
+
+> 宏定义中的#和##的宏展开问题 ： [https://blog.csdn.net/yeyiliang/article/details/50294067](https://blog.csdn.net/yeyiliang/article/details/50294067)
+
+
+
+### 28、public，protected和private访问和继承权限/public/protected/private的区别？
+
+- public的变量和函数在类的内部外部都可以访问。
+- protected的变量和函数只能在类的内部和其派生类中访问。
+- private修饰的元素只能在类内访问。
+
+（一）访问权限
+
+派生类可以继承基类中除了构造/析构、赋值运算符重载函数之外的成员，但是这些成员的访问属性在派生过程中也是可以调整的，三种派生方式的访问权限如下表所示：注意外部访问并不是真正的外部访问，而是在通过派生类的对象对基类成员的访问。
+
+![image-20210426161046416](Pictures/问答系列之C++篇/028_1_问答系列之C++篇.png)
+
+
+
+派生类对基类成员的访问形象有如下两种：
+
+- 内部访问：由派生类中新增的成员函数对从基类继承来的成员的访问
+- **外部访问**：在派生类外部，通过派生类的对象对从基类继承来的成员的访问
+
+（二）继承权限
+
+**public继承**
+
+公有继承的特点是基类的公有成员和保护成员作为派生类的成员时，都保持原有的状态，而基类的私有成员任然是私有的，不能被这个派生类的子类所访问
+
+**protected继承**
+
+保护继承的特点是基类的所有公有成员和保护成员都成为派生类的保护成员，并且只能被它的派生类成员函数或友元函数访问，基类的私有成员仍然是私有的，访问规则如下表
+
+![image-20210426161046416](Pictures/问答系列之C++篇/028_2_问答系列之C++篇.png)
+
+**private继承**
+
+私有继承的特点是基类的所有公有成员和保护成员都成为派生类的私有成员，并不被它的派生类的子类所访问，基类的成员只能由自己派生类访问，无法再往下继承，访问规则如下表
+
+![image-20210426161046416](Pictures/问答系列之C++篇/028_3_问答系列之C++篇.png)
+
+
+
+### 29、如何用代码判断大小端存储
+
+大端存储：字数据的高字节存储在低地址中
+
+小端存储：字数据的低字节存储在低地址中
+
+例如：32bit的数字0x12345678
+
+小端模式中的存储方式为：
+
+![img](Pictures/问答系列之C++篇/029_1_问答系列之C++篇.png)
+
+
+
+大端模式中的存储方式为：
+
+![img](Pictures/问答系列之C++篇/029_2_问答系列之C++篇.png)
+
+
+
+**方式一：使用强制类型转换**
+
+```cpp
+#include <iostream>
+
+int main() {
+    std::cout << "Hello, World!" << std::endl;
+
+    int a = 0x12345678; // 4 字节
+    //由于int和 short int 的长度不同，借助int型转换成 short int 型，只会留下低地址的部分
+    auto c = (short int)(a);
+    if (c == 0x1234)
+        std::cout << "big endian" << std::endl;
+    else if(c == 0x5678)
+        std::cout << "little endian" << std::endl;
+    else
+        std::cout << "error" << std::endl;
+
+    return 0;
+}
+```
+
+
+
+**方式二：利用union联合体**
+
+```cpp
+#include <iostream>
+
+union endian {
+    int a;
+    short int b;
+};
+
+int main() {
+    std::cout << "Hello, World!" << std::endl;
+    endian value{};
+    value.a = 0x12340000;
+    //a和ch共用4字节的内存空间
+    if (value.b == 0x1234)
+        std::cout << "big endian"<< std::endl;
+    else if (value.b == 0x0)
+        std::cout << "little endian"<< std::endl;
+
+    return 0;
+}
+```
+
+> 写程序判断系统是大端序还是小端序：[https://www.cnblogs.com/zhoudayang/p/5985563.html](https://www.cnblogs.com/zhoudayang/p/5985563.html)
+
 
 
 https://github.com/forthespada/InterviewGuide/blob/main/%E7%9F%A5%E8%AF%86%E5%82%A8%E5%A4%87/C&C++.md#39%E5%86%85%E8%81%94%E5%87%BD%E6%95%B0%E5%92%8C%E5%AE%8F%E5%AE%9A%E4%B9%89%E7%9A%84%E5%8C%BA%E5%88%AB
